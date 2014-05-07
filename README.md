@@ -22,6 +22,7 @@ Now, to create a worker:
 ```js
 var mongoJob = require('mongo_job')
 var MongoClient = require('mongodb').MongoClient
+var url = 'mongodb://127.0.0.1:27017/example'
 
 MongoClient.connect(url, function(err, db){
   var jobs = db.collection('jobs')
