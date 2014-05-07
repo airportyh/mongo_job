@@ -40,6 +40,9 @@ Worker.prototype = {
         self.emit('error', err)
         return
       }
+      if (job == null){
+        return
+      }
       self.claimJob(job, function(err, job){
         if (err){
           self.takeNextJob(cursor)
