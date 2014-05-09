@@ -1,6 +1,6 @@
 var assert = require('assert')
 var is = require('is-type')
-var debug = require('debug')('mongo-job')
+var debug = require('debug')
 var EventEmitter = require('events').EventEmitter
 
 exports.dispatch = dispatchJob
@@ -13,8 +13,11 @@ function dispatchJob(jobs, details, callback){
 }
 
 function Worker(jobs, processJob){
+  this.id = Math.floor(Math.random() * 1000)
+  this.debug = debug('mongo_job.' + this.id)
   this.jobs = jobs
   this.processJob = processJob
+  this.jobCount = 0
 }
 
 Worker.prototype = {
@@ -35,14 +38,17 @@ Worker.prototype = {
   },
   takeNextJob: function(cursor){
     var self = this
+    cursor.rewind()
     cursor.nextObject(function(err, job){
       if (err){
         self.emit('error', err)
         return
       }
       if (job == null){
+        assert(false, 'cursor shouldnt return null job')
         return
       }
+
       self.claimJob(job, function(err, job){
         if (err){
           self.takeNextJob(cursor)
@@ -59,25 +65,25 @@ Worker.prototype = {
   },
   claimJob: function(job, callback){
     var self = this
-    job.state = 'open'
     this.jobs.findAndModify(
-      {_id: job._id, state: 'new:'}, 
+      {state: 'new:'}, 
       [['_id', 'descending']], 
-      job,
+      {$set: {state: 'open'}},
       function(err, job){
         if (job == null){
-          debug('Didnt get the job')
+          self.debug('Didnt get the job')
           return callback(new Error('Didnt get the job'))
         }
-        debug('Got the job')
+        self.debug('Got the job!')
         callback(null, job)
       })
   },
   runJob: function(job, callback){
     var self = this
-    debug('Running the job')
+    self.debug('Running the job')
     this.processJob(job.details, function(){
-      debug('Done the job')
+      self.jobCount++
+      self.debug('Done the job', self.jobCount)
       job.state = 'done'
       self.jobs.save(job, callback)
     })

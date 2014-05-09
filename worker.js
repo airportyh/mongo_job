@@ -9,19 +9,18 @@ cmdLn(function(concurrency){
 
     var jobs = db.collection('jobs')
     for (var i = 0; i < concurrency; i++){
-      newWorker(jobs)
+      newWorker(i, jobs)
     }
-     
   })
 })
 
-function newWorker(jobs){
+function newWorker(i, jobs){
   mongoJob.runJobs(
     jobs,
     function(details, callback){
-      console.log('Starting job', details)
+      console.log('Worker', i, 'Starting job', details)
       setTimeout(function(){
-        console.log('Finished job', details)
+        console.log('Worker', i, 'Finished job', details)
         callback()
       }, 2000)
     }
